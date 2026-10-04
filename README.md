@@ -1,110 +1,37 @@
 # StrixHalo-Fedora44-70B
 
-A repository for deploying and orchestrating local large language models (70B+) on **AMD Strix Halo (Ryzen AI Max+ / gfx1151)** hardware running **Fedora 44**.
+Local 70B model inference on a GMKtec EVO-X2 with an AMD Ryzen AI Max+ 395, Radeon 8060S (`gfx1151`), 128 GB unified memory, and a 96 GiB GPU memory reservation. The host runs Fedora 44; the container images use pinned AMD ROCm development images and run with Podman.
 
-This project provides end-to-end automation using **SaltStack** to provision ROCm 10 repo configurations, container runtime toolkits, and CDI (Container Device Interface) hooks, alongside optimized **Podman / Docker runtime containers** for high-throughput 70B+ model inference.
+## Project layout
 
----
+- [`salt/README.md`](salt/README.md): masterless Salt state for the Fedora host's ROCm 10 runtime tools, AMD Container Runtime Toolkit, and Podman CDI device access.
+- [`containers/llama-cpp-ds-r1-70b/README.md`](containers/llama-cpp-ds-r1-70b/README.md): llama.cpp HIP image and DeepSeek-R1-Distill-Llama-70B Q4_K_M instructions.
+- [`containers/strata-qwen-flash-next-iq3-s/README.md`](containers/strata-qwen-flash-next-iq3-s/README.md): Strata's experimental `gfx1151` build and Qwen IQ3_S instructions.
+- [`NEXT.md`](NEXT.md): source notes and remaining model work.
+- [`AGENTS.md`](AGENTS.md): project conventions for ROCm containers and this host.
 
-## 🏗️ Repository Architecture
+## Host setup
 
-```text
-.
-├── AGENTS.md                  # Development guidelines & agent instructions
-├── NEXT.md                    # Project roadmap and pending task queue
-├── salt/                      # SaltStack state tree for host provisioning
-│   ├── top.sls                # Main Salt state mapping
-│   └── rocm10/                # ROCm 10 repo configuration & AMD container toolkit
-│       ├── init.sls
-│       └── files/
-│           ├── amd-container-toolkit.repo
-│           ├── fedora-rawhide-rocm10.repo
-│           └── refresh-amd-cdi.sh
-└── containers/                # Containerized LLM inference runtimes
-    ├── llama-cpp-ds-r1-70b/   # llama.cpp container for DeepSeek-R1-Distill-70B
-    │   ├── Dockerfile
-    │   └── README.md
-    └── strata-qwen-flash-next-iq3-s/ # Patch-optimized Qwen/Strata container
-        ├── Dockerfile
-        ├── strata-gfx1151.patch # Strix Halo (gfx1151) compilation patch
-        └── README.md
+After completing any pending Fedora offline update, install the Salt minion and apply the state from this repository. Review the package compatibility limits in [`salt/README.md`](salt/README.md) first.
+
+```sh
+cd /home/mlops/Code/StrixHalo-Fedora44-70B
+sudo dnf install salt-minion
+sudo salt-call --local --file-root="$PWD/salt" state.apply rocm10 test=True
+sudo salt-call --local --file-root="$PWD/salt" state.apply rocm10
+amd-ctk cdi list
 ```
 
----
+The Salt state completed successfully on this host on October 4, 2026. It installs a limited set of ROCm 10 host packages from a disabled Fedora Rawhide repository during a pinned transaction. The full Rawhide ROCm stack currently has incompatible Fedora 44 dependencies. The container images supply their own ROCm user-space build libraries.
 
-## 🚀 Quick Start
+## Containers
 
-### 1. Provision Host with SaltStack
+Build and run each image from the repository root using the commands in its README. Podman uses AMD Container Runtime Toolkit CDI (`--device amd.com/gpu=all`); the per-container READMEs include the tested direct-device fallback where useful. Keep model files in the documented host directory or named Podman volume so image rebuilds do not repeat large downloads.
 
-Configure the host operating system with ROCm 10 packages, container runtime tools, and AMD Container Device Interface (CDI) configurations:
+The Strata IQ3_S model has loaded and answered a short test on this machine using direct device access. The llama.cpp image has built and detected the Radeon 8060S through Podman CDI, but its 70B model has not yet been loaded.
 
-```bash
-# Run Salt state locally to apply ROCm 10 repos and CDI drivers
-sudo salt-call --local state.apply
+## Contributions
 
-# Refresh AMD Container Device Interface (CDI) spec
-sudo /srv/salt/rocm10/files/refresh-amd-cdi.sh
-```
+The repository owner, collaborators, and existing contributors may open issues and pull requests. The workflow in `.github/workflows/restrict-contributions.yml` closes new issues and pull requests from other accounts. `.github/CODEOWNERS` requests review from [@christophermarklee](https://github.com/christophermarklee) on all changes. To require that review before merging, create a ruleset for the default branch under **Settings → Rules → Rulesets**, require a pull request and an approving review, and enable **Require review from Code Owners**.
 
-### 2. Build & Run Containerized Models
-
-#### Option A: DeepSeek-R1-Distill-70B (`llama.cpp`)
-
-Navigate to the DeepSeek container directory and build the ROCm-accelerated runtime:
-
-```bash
-cd containers/llama-cpp-ds-r1-70b
-
-# Build image
-podman build -t llama-cpp-ds-r1-70b .
-
-# Run with AMD iGPU passthrough
-podman run --rm -it \
-  --device /dev/kfd \
-  --device /dev/dri \
-  --ipc=host \
-  -v /path/to/models:/models:z \
-  -p 8080:8080 \
-  llama-cpp-ds-r1-70b
-```
-
-#### Option B: Quantized Qwen / Strata (gfx1151 Optimized)
-
-This runtime incorporates `strata-gfx1151.patch` to patch underlying kernel calls and target the Strix Halo architecture directly:
-
-```bash
-cd containers/strata-qwen-flash-next-iq3-s
-
-# Build patch-applied container
-podman build -t strata-qwen-gfx1151 .
-```
-
----
-
-## ⚙️ Target Hardware & Environment
-
-* **APU:** AMD Ryzen AI Max+ 395 / 390 (**Strix Halo**)
-* **GPU Architecture:** RDNA 3.5 (`gfx1151`)
-* **Unified Memory:** 128 GB / 192 GB LPDDR5X-8000
-* **Host OS:** Fedora 44 (Rawhide / ROCm 10 stack)
-* **Acceleration Stack:** ROCm 10.x + AMD Container Toolkit (CDI)
-
----
-
-## 📌 Environment Overrides
-
-When running manual inference commands outside of containers on Strix Halo, ensure the following environment variables are exported:
-
-```bash
-export HSA_OVERRIDE_GFX_VERSION=11.5.1
-export HCC_AMDGPU_TARGET=gfx1151
-export HIP_VISIBLE_DEVICES=0
-export GGML_CUDA_ENABLE_UNIFIED_MEMORY=1
-```
-
----
-
-## 📄 License & Notes
-
-* Refer to `NEXT.md` for upcoming features, performance benchmarks, and pending container updates.
-* Refer to `AGENTS.md` for contributor guidelines and coding conventions used across this repository.
+GitHub's interaction limit can block non-contributors from opening issues and pull requests before they are created. Choose **Limit to prior contributors** under **Settings → Moderation options → Interaction limits**. That setting is temporary and expires after at most six months, so it must be renewed. The workflow provides a continuing repository-side check after that setting expires, but GitHub does not provide a permanent repository setting that prevents public users from attempting to open a pull request.

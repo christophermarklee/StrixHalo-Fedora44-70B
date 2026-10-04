@@ -1,0 +1,55 @@
+diff --git a/cmake/hip_backend.cmake b/cmake/hip_backend.cmake
+index 255ee38..be1ada9 100644
+--- a/cmake/hip_backend.cmake
++++ b/cmake/hip_backend.cmake
+@@ -11,7 +11,7 @@ endif()
+ # report ran it (#311), the maintainers have not.
+ set(_strata_hip_validated gfx1100 gfx1201)
+ set(_strata_hip_community gfx1101 gfx1200)
+-set(_strata_hip_unvalidated gfx1102 gfx1030)
++set(_strata_hip_unvalidated gfx1102 gfx1030 gfx1151)
+ # CMake hands HIP a ';' list, but a -DCMAKE_HIP_ARCHITECTURES typed by hand (or ROCm's own Windows tooling) may use
+ # spaces, which foreach(IN LISTS) would otherwise treat as one element.
+ string(REPLACE " " ";" _strata_hip_norm "${CMAKE_HIP_ARCHITECTURES}")
+diff --git a/include/strata/hip_compat/intrinsics.hpp b/include/strata/hip_compat/intrinsics.hpp
+index a789e38..6aa3fdc 100644
+--- a/include/strata/hip_compat/intrinsics.hpp
++++ b/include/strata/hip_compat/intrinsics.hpp
+@@ -16,7 +16,7 @@ __device__ __forceinline__ int signed_byte(uint32_t word, int lane) {
+ // CUDA's signed __dp4a: four signed byte products accumulated modulo 2^32.
+ __device__ __forceinline__ int dp4a(int a, int b, int c) {
+ #if (defined(__gfx1100__) || defined(__gfx1101__) || defined(__gfx1102__) || defined(__gfx1200__) || \
+-     defined(__gfx1201__)) && __has_builtin(__builtin_amdgcn_sudot4)
++     defined(__gfx1201__) || defined(__gfx1151__)) && __has_builtin(__builtin_amdgcn_sudot4)
+     // RDNA3 and RDNA4 expose the signed/unsigned dot4 form (v_dot4_i32_iu8). Mark
+     // both packed operands signed to preserve CUDA __dp4a semantics; keep the
+     // portable path for other HIP compilers/targets.
+diff --git a/setup.py b/setup.py
+index bc5cdd3..ebafa4c 100644
+--- a/setup.py
++++ b/setup.py
+@@ -1082,17 +1082,20 @@ ROCM_INDEXES = {"gfx1100": "https://rocm.nightlies.amd.com/v2/gfx110X-dgpu/",
+                 "gfx1101": "https://rocm.nightlies.amd.com/v2/gfx110X-dgpu/",
+                 "gfx1200": "https://rocm.nightlies.amd.com/v2/gfx120X-all/",
+                 "gfx1201": "https://rocm.nightlies.amd.com/v2/gfx120X-all/",
+-                "gfx1030": "https://rocm.nightlies.amd.com/v2/gfx103X-all/"}
++                "gfx1030": "https://rocm.nightlies.amd.com/v2/gfx103X-all/",
++                "gfx1151": "https://rocm.nightlies.amd.com/v2/gfx1151/"}
+ ROCM_VERSION = os.environ.get("STRATA_ROCM_VERSION", "7.10.0a20251120")   # what Strata's HIP build was tested with
+ ROCM_SYSTEM_MIN = (7, 0)       # an older system ROCm is passed over for the wheels (gfx1201 needs ROCm 6.4 or newer)
+-AMD_ARCHS = ("gfx1100", "gfx1101", "gfx1200", "gfx1201", "gfx1030")
++AMD_ARCHS = ("gfx1100", "gfx1101", "gfx1200", "gfx1201", "gfx1030", "gfx1151")
+ AMD_NAMES = {"gfx1100": "AMD Radeon RX 7900 series (gfx1100)",   # when sysfs has no product name
+              "gfx1101": "AMD Radeon RX 7800 XT / 7700 XT (gfx1101)",
+              "gfx1200": "AMD Radeon RX 9060 series (gfx1200)",
+              "gfx1201": "AMD Radeon RX 9070 series / AI PRO R9700 (gfx1201)",
+-             "gfx1030": "AMD Radeon RX 6800 / 6900 series (gfx1030)"}
++             "gfx1030": "AMD Radeon RX 6800 / 6900 series (gfx1030)",
++             "gfx1151": "AMD Radeon 8060S (gfx1151)"}
+ AMD_CARDS = ("the RX 7900 XT / XTX (gfx1100), RX 7800 XT / 7700 XT (gfx1101), RX 9060 XT (gfx1200) and "
+-             "RX 9070 / 9070 XT / Radeon AI PRO R9700 (gfx1201), and the RX 6800 / 6900 series (gfx1030, unvalidated)")
++             "RX 9070 / 9070 XT / Radeon AI PRO R9700 (gfx1201), the RX 6800 / 6900 series (gfx1030, unvalidated), "
++             "and the Radeon 8060S (gfx1151, experimental)")
+ 
+ 
+ def rocm_index(arch):

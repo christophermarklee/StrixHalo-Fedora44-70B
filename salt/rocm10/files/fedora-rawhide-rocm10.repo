@@ -1,0 +1,8 @@
+[fedora-rawhide-rocm10]
+name=Fedora Rawhide ROCm 10 packages for Fedora 44
+metalink=https://mirrors.fedoraproject.org/metalink?repo=rawhide&arch=$basearch
+enabled=0
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-fedora-46-primary
+priority=200
+includepkgs=amdsmi* aqlprofile* hip* miopen* migraphx* mivisionx* rccl* rocal* rocm* roc*

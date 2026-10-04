@@ -1,0 +1,8 @@
+[amd-container-toolkit]
+name=AMD Container Runtime Toolkit (RHEL 9 RPM repository)
+baseurl=https://repo.radeon.com/amd-container-toolkit/el9/main/
+enabled=0
+gpgcheck=1
+gpgkey=https://repo.radeon.com/rocm/rocm.gpg.key
+priority=200
+includepkgs=amd-container-toolkit*
