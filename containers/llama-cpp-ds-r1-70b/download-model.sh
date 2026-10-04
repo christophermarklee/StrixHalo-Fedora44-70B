@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+: "${MODEL_FILE:?MODEL_FILE must be set}"
+: "${MODEL_URL:?MODEL_URL must be set}"
+
+mkdir -p /models
+model_path="/models/$MODEL_FILE"
+partial_path="$model_path.partial"
+
+if [[ -s "$model_path" ]]; then
+    printf 'Model already present: %s\n' "$model_path"
+    exit 0
+fi
+
+curl -fL --retry 5 --retry-all-errors --continue-at - \
+    --output "$partial_path" "$MODEL_URL"
+mv "$partial_path" "$model_path"
+printf 'Downloaded model: %s\n' "$model_path"

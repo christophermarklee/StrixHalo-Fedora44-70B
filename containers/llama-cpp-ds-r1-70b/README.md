@@ -2,14 +2,7 @@
 
 This container builds [llama.cpp release `b11379`](https://github.com/ggml-org/llama.cpp/releases/tag/b11379) for the GMKtec EVO-X2's Radeon 8060S (`gfx1151`). It uses AMD's `rocm/dev-ubuntu-24.04:7.14.1-full` image for ROCm user-space libraries, even though the host runs Fedora 44. The host supplies the GPU kernel driver. Podman supplies GPU access through AMD Container Runtime Toolkit CDI.
 
-The model is [DeepSeek-R1-Distill-Llama-70B Q4_K_M](https://huggingface.co/bartowski/DeepSeek-R1-Distill-Llama-70B-GGUF), a 42.52 GB GGUF file. Keep it on the host so rebuilding the image does not download it again:
-
-```sh
-mkdir -p "$HOME/models/ds-r1-70b"
-curl -fL --retry 5 --continue-at - \
-  -o "$HOME/models/ds-r1-70b/DeepSeek-R1-Distill-Llama-70B-Q4_K_M.gguf" \
-  https://huggingface.co/bartowski/DeepSeek-R1-Distill-Llama-70B-GGUF/resolve/main/DeepSeek-R1-Distill-Llama-70B-Q4_K_M.gguf
-```
+The model is [DeepSeek-R1-Distill-Llama-70B Q4_K_M](https://huggingface.co/bartowski/DeepSeek-R1-Distill-Llama-70B-GGUF), a 42.52 GB GGUF file. The image contains a downloader, but no model weights. Its named Podman volume persists across container and image rebuilds.
 
 Build from the repository root:
 
@@ -17,6 +10,15 @@ Build from the repository root:
 podman build --format docker -t llama-cpp-ds-r1-70b \
   -f containers/llama-cpp-ds-r1-70b/Dockerfile \
   containers/llama-cpp-ds-r1-70b
+podman volume create ds-r1-70b-q4-k-m-model
+```
+
+Download the model inside a container into the named volume. Re-running the command skips a completed file and resumes a `.partial` download. The download container does not need GPU access:
+
+```sh
+podman run --rm -v ds-r1-70b-q4-k-m-model:/models \
+  --entrypoint /usr/local/bin/download-model \
+  llama-cpp-ds-r1-70b
 ```
 
 Check the CDI device names with `amd-ctk cdi list`. The following commands use `amd.com/gpu=all`, as this host has one GPU. Check GPU visibility before loading the model:
@@ -30,7 +32,7 @@ Run a short inference check:
 
 ```sh
 podman run --rm --device amd.com/gpu=all --group-add keep-groups \
-  -v "$HOME/models/ds-r1-70b:/models:ro,Z" \
+  -v ds-r1-70b-q4-k-m-model:/models:ro \
   llama-cpp-ds-r1-70b \
   -m /models/DeepSeek-R1-Distill-Llama-70B-Q4_K_M.gguf \
   -ngl 99 -fa on --threads 8 -c 4096 -n 64 \
@@ -41,7 +43,7 @@ The image also builds `llama-server`. To serve locally, replace the image entryp
 
 ```sh
 podman run --rm --device amd.com/gpu=all --group-add keep-groups \
-  -v "$HOME/models/ds-r1-70b:/models:ro,Z" \
+  -v ds-r1-70b-q4-k-m-model:/models:ro \
   -p 127.0.0.1:8080:8080 \
   --entrypoint /opt/llama.cpp/build/bin/llama-server \
   llama-cpp-ds-r1-70b \

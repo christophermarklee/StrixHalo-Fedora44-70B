@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-# DeepSeek-R1-Distill-Llama-70B Q4_K_M on the GMKtec EVO-X2 (gfx1151).
+# DeepSeek-R1-Distill-Qwen-32B Q8_0 on the GMKtec EVO-X2 (gfx1151).
 # The Fedora host supplies the amdgpu kernel driver; Podman supplies GPU access
 # through AMD Container Runtime Toolkit CDI at run time.
 FROM docker.io/rocm/dev-ubuntu-24.04:7.14.1-full
@@ -12,7 +12,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential ca-certificates cmake curl git ninja-build \
     && rm -rf /var/lib/apt/lists/*
 
-# A release tag keeps rebuilds independent of llama.cpp's moving main branch.
 ARG LLAMA_CPP_REF=b11379
 RUN git clone --depth 1 --branch "$LLAMA_CPP_REF" \
       https://github.com/ggml-org/llama.cpp.git /opt/llama.cpp
@@ -28,10 +27,9 @@ RUN cmake -S . -B build -G Ninja \
       -DCMAKE_BUILD_TYPE=Release \
     && cmake --build build --target llama-cli llama-server --parallel 4
 
-# Mount a persistent GGUF model directory at /models when running the image.
 ENV LD_LIBRARY_PATH=/opt/rocm/lib:/opt/rocm/lib64
-ENV MODEL_FILE=DeepSeek-R1-Distill-Llama-70B-Q4_K_M.gguf \
-    MODEL_URL=https://huggingface.co/bartowski/DeepSeek-R1-Distill-Llama-70B-GGUF/resolve/main/DeepSeek-R1-Distill-Llama-70B-Q4_K_M.gguf
+ENV MODEL_FILE=DeepSeek-R1-Distill-Qwen-32B-Q8_0.gguf \
+    MODEL_URL=https://huggingface.co/bartowski/DeepSeek-R1-Distill-Qwen-32B-GGUF/resolve/main/DeepSeek-R1-Distill-Qwen-32B-Q8_0.gguf
 COPY download-model.sh /usr/local/bin/download-model
 RUN chmod 0755 /usr/local/bin/download-model
 ENTRYPOINT ["/opt/llama.cpp/build/bin/llama-cli"]

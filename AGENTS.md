@@ -36,7 +36,7 @@ On this Fedora 44 host, Strata's first model load failed with ROCm's `Memory in 
 - Prefer an AMD ROCm development image as the base (for example, `rocm/dev-ubuntu-24.04`) with a pinned ROCm release. Select a release that includes usable `gfx1151` compiler/runtime support. Avoid floating `latest` tags for reproducible projects.
 - Compile GPU code for `gfx1151` explicitly. A source project's list of supported architectures may exclude this integrated GPU; inspect its checks and kernels rather than merely overriding a target flag. Keep any compatibility patch in that container's folder, pin the upstream source revision, and label unvalidated support as experimental.
 - Do not assume that host `free` reports all 128 GB as ordinary RAM. The 96 GiB GPU reservation leaves about 30 GiB for Fedora. Avoid imposing a low container memory cap on inference containers unless the model/runtime has been configured for it. Account for the project's model weights, KV cache, expert/cache strategy, and host RAM needs in its README.
-- Persist large model downloads and generated model artifacts in a named Podman volume or an explicitly documented host directory. A container rebuild should not require downloading the model again.
+- Persist large model downloads and generated model artifacts in a named Podman volume. Download weights from inside a container into that volume, not into the repository or an image layer. A container rebuild should not require downloading the model again.
 - Bind web UIs and APIs to `127.0.0.1` by default. If a project supports access from other machines, document API-key protection and require a key for non-loopback access.
 
 ## Per-project documentation
@@ -46,7 +46,7 @@ Every directory in `containers/` should include a `Dockerfile` and a `README.md`
 1. The upstream project and pinned source/release version.
 2. The selected ROCm base image/version and how its `gfx1151` support is established.
 3. Podman build and run commands using AMD Container Runtime Toolkit CDI (`--device amd.com/gpu=...`), required Fedora/SELinux options, and safe loopback port publishing. Include the direct device-passthrough fallback only when useful.
-4. Named volumes or paths for model persistence and the expected first-run download size.
+4. Named Podman volumes for model persistence, an in-container download command, and the expected first-run download size.
 5. A device-visibility command and one application-level health or inference smoke check.
 6. Known limits and which hardware/model configurations have actually been tested.
 
