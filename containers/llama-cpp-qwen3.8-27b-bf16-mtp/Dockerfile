@@ -8,7 +8,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     LLAMA_CACHE=/models
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential ca-certificates cmake curl git libcurl4-openssl-dev ninja-build \
+    build-essential ca-certificates cmake curl git libcurl4-openssl-dev libssl-dev ninja-build \
     && rm -rf /var/lib/apt/lists/*
 
 # b11390 includes current Qwen3.5/Qwen3.8 and MTP support.
@@ -24,6 +24,7 @@ RUN cmake -S . -B build -G Ninja \
       -DGGML_HIP_NO_VMM=ON \
       -DGGML_NATIVE=OFF \
       -DLLAMA_CURL=ON \
+      -DLLAMA_OPENSSL=ON \
       -DCMAKE_BUILD_TYPE=Release \
     && cmake --build build --target llama-cli llama-server --parallel 4
 

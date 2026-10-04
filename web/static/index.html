@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark light">
+    <title>Strix Halo · Local Inference</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/app.js" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand-mark" aria-hidden="true">SH</div>
+      <div>
+        <p class="eyebrow">LOCAL INFERENCE HOST</p>
+        <h1>Strix Halo</h1>
+      </div>
+      <div class="host-pill"><span class="pulse"></span> Podman dashboard</div>
+    </header>
+
+    <main>
+      <section class="intro">
+        <div>
+          <p class="eyebrow">MODEL SERVICES</p>
+          <h2>Your containers, at a glance.</h2>
+          <p class="lede">Start a service to bring its local endpoint online. Model loading and first downloads can take several minutes.</p>
+        </div>
+        <button class="refresh-button" id="refresh" type="button" aria-label="Refresh container status">
+          <span aria-hidden="true">↻</span> Refresh
+        </button>
+      </section>
+
+      <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+      <section id="services" class="service-grid" aria-label="Inference containers">
+        <div class="loading">Reading Podman status…</div>
+      </section>
+
+      <footer>
+        <span>Endpoints are bound to <code>127.0.0.1</code>.</span>
+        <span>Only start the models your available GPU memory can hold.</span>
+      </footer>
+    </main>
+  </body>
+</html>

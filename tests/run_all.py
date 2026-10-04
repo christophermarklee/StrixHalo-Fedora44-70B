@@ -57,6 +57,13 @@ def volume_has_data(podman: str, model: dict[str, Any]) -> bool:
     volume = model["volume"]
     if model["kind"] == "llama_cpp":
         check = f"test -s {mountpoint}/{model['model_file']}"
+    elif model["kind"] == "llama_hf":
+        draft = f"test -s {mountpoint}/{model['draft_file']}"
+        targets = " && ".join(
+            f"find {mountpoint} -type f -name '{item['name']}' -size +{item['min_size']}c -print -quit | grep -q ."
+            for item in model["target_files"]
+        )
+        check = f"{draft} && {targets}"
     else:
         check = f"test -n \"$(find {mountpoint} -mindepth 1 -print -quit)\""
     result = command([
@@ -85,6 +92,22 @@ def container_args(model: dict[str, Any], name: str, port: int) -> list[str]:
             "-ngl", "99", "-fa", "on",
             "--threads", str(model.get("threads", 8)),
             "-c", str(model.get("context", 4096)),
+            "--host", "0.0.0.0", "--port", "8080",
+        ])
+    elif model["kind"] == "llama_hf":
+        args.extend([
+            "--unsetenv", "GGML_CUDA_ENABLE_UNIFIED_MEMORY",
+            "--volume", f"{model['volume']}:/models:rw",
+            "--env", "LLAMA_CACHE=/models",
+            "--entrypoint", "/opt/llama.cpp/build/bin/llama-server",
+            model["image"],
+            "-hf", f"{model['hf_repo']}:{model['hf_quant']}",
+            "--model-draft", f"/models/{model['draft_file']}",
+            "--spec-type", "draft-mtp",
+            "--spec-draft-n-max", str(model.get("draft_tokens", 2)),
+            "-ngl", "99", "-fa", "on",
+            "--threads", str(model.get("threads", 8)),
+            "-c", str(model.get("context", 8192)),
             "--host", "0.0.0.0", "--port", "8080",
         ])
     elif model["kind"] == "strata":
@@ -156,6 +179,13 @@ def run_model(
             )
         if model["kind"] == "llama_cpp" and not has_data:
             raise SkipModel(f"Expected model file is missing from Podman volume {model['volume']}")
+        if model["kind"] == "llama_hf" and not has_data:
+            target_names = ", ".join(item["name"] for item in model["target_files"])
+            raise SkipModel(
+                f"Expected cached Hugging Face target shards ({target_names}) and MTP draft "
+                f"{model['draft_file']} are missing/incomplete in Podman volume {model['volume']}; "
+                "start the container from its README once to download them before running the audit suite"
+            )
 
         print(f"\n=== {model['label']} ({model['image']}) ===", flush=True)
         started_container = command([podman, *container_args(model, name, port)], capture=True, timeout=120)
