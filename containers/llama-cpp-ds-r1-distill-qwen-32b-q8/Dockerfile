@@ -5,8 +5,7 @@
 FROM docker.io/rocm/dev-ubuntu-24.04:7.14.1-full
 
 ENV DEBIAN_FRONTEND=noninteractive \
-    ROCM_PATH=/opt/rocm \
-    GGML_CUDA_ENABLE_UNIFIED_MEMORY=1
+    ROCM_PATH=/opt/rocm
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential ca-certificates cmake curl git ninja-build \

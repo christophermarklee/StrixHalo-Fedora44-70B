@@ -32,6 +32,10 @@ Build and run each image from the repository root using the commands in its READ
 
 The Strata IQ3_S model has loaded and answered a short test on this machine using direct device access. The llama.cpp image has built and detected the Radeon 8060S through Podman CDI, but its 70B model has not yet been loaded.
 
+## Model evaluation
+
+Use [`tests/README.md`](tests/README.md) to run the shared smoke suite against a hosted model endpoint and compare the audit reports. The suite includes a container-sandboxed Python coding task; imported AIME/GPQA question sets can use the documented JSONL format.
+
 ## Contributions
 
 The repository owner, collaborators, and existing contributors may open issues and pull requests. The workflow in `.github/workflows/restrict-contributions.yml` closes new issues and pull requests from other accounts. `.github/CODEOWNERS` requests review from [@christophermarklee](https://github.com/christophermarklee) on all changes. To require that review before merging, create a ruleset for the default branch under **Settings → Rules → Rulesets**, require a pull request and an approving review, and enable **Require review from Code Owners**.

@@ -35,6 +35,7 @@ Run a short inference check with the model volume mounted read-only:
 
 ```sh
 podman run --rm --device amd.com/gpu=all --group-add keep-groups \
+  --unsetenv GGML_CUDA_ENABLE_UNIFIED_MEMORY \
   -v qwen2.5-72b-q4-k-m-model:/models:ro \
   llama-cpp-qwen2.5-72b-q4-k-m \
   -m /models/Qwen2.5-72B-Instruct-Q4_K_M.gguf \
@@ -46,17 +47,18 @@ To serve locally instead, use the same volume and the image's `llama-server` bin
 
 ```sh
 podman run --rm --device amd.com/gpu=all --group-add keep-groups \
+  --unsetenv GGML_CUDA_ENABLE_UNIFIED_MEMORY \
   -v qwen2.5-72b-q4-k-m-model:/models:ro \
   -p 127.0.0.1:8080:8080 \
   --entrypoint /opt/llama.cpp/build/bin/llama-server \
   llama-cpp-qwen2.5-72b-q4-k-m \
   -m /models/Qwen2.5-72B-Instruct-Q4_K_M.gguf \
-  -ngl 99 -fa on --threads 8 -c 4096 \
+  -ngl 99 -fa on --threads 8 -c 8192 \
   --host 0.0.0.0 --port 8080
 ```
 
 Check `curl -fsS http://127.0.0.1:8080/health` after loading. The host port is bound to loopback; require an API key before exposing it to other machines. Run one server on port 8080 at a time, or change the host-side port.
 
-This image compiles HIP for `gfx1151` and enables llama.cpp Flash Attention kernels; `-fa on` selects them at run time. It sets `GGML_CUDA_ENABLE_UNIFIED_MEMORY=1` and no `HSA_OVERRIDE_GFX_VERSION`. Start at 4096 context and inspect memory use before increasing it. The 96 GiB GPU reservation leaves about 30 GiB for ordinary Fedora processes, so begin with mmap enabled rather than `--no-mmap`. Rootless Podman may need a new login session for the host `render` and `video` groups. If SELinux blocks GPU access, test `--security-opt label=disable` only after observing the failure.
+This image compiles HIP for `gfx1151` and enables llama.cpp Flash Attention kernels; `-fa on` selects them at run time. Earlier builds set `GGML_CUDA_ENABLE_UNIFIED_MEMORY=1`; the run commands unset it so HIP allocates directly from the 96 GiB GPU VRAM reservation. A rebuild from this Dockerfile omits it. This llama.cpp release checks whether the variable exists, so setting it to `0` still enables managed allocation. No `HSA_OVERRIDE_GFX_VERSION` is set. Start at 4096 context and inspect memory use before increasing it. The 96 GiB GPU reservation leaves about 30 GiB for ordinary Fedora processes, so begin with mmap enabled rather than `--no-mmap`. Rootless Podman may need a new login session for the host `render` and `video` groups. If SELinux blocks GPU access, test `--security-opt label=disable` only after observing the failure.
 
 This image built successfully on this host, and `--list-devices` detected the Radeon 8060S through Podman CDI. The 47.42 GB model download was started in the named Podman volume on October 4, 2026. Complete model load, output quality, and speed still need verification.

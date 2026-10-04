@@ -34,6 +34,7 @@ Run a short inference check:
 
 ```sh
 podman run --rm --device amd.com/gpu=all --group-add keep-groups \
+  --unsetenv GGML_CUDA_ENABLE_UNIFIED_MEMORY \
   -v ds-r1-70b-q4-k-m-model:/models:ro \
   llama-cpp-ds-r1-70b \
   -m /models/DeepSeek-R1-Distill-Llama-70B-Q4_K_M.gguf \
@@ -45,12 +46,13 @@ The image also builds `llama-server`. To serve locally, replace the image entryp
 
 ```sh
 podman run --rm --device amd.com/gpu=all --group-add keep-groups \
+  --unsetenv GGML_CUDA_ENABLE_UNIFIED_MEMORY \
   -v ds-r1-70b-q4-k-m-model:/models:ro \
   -p 127.0.0.1:8080:8080 \
   --entrypoint /opt/llama.cpp/build/bin/llama-server \
   llama-cpp-ds-r1-70b \
   -m /models/DeepSeek-R1-Distill-Llama-70B-Q4_K_M.gguf \
-  -ngl 99 -fa on --threads 8 -c 4096 \
+  -ngl 99 -fa on --threads 8 -c 8192 \
   --host 0.0.0.0 --port 8080
 ```
 
@@ -60,7 +62,7 @@ Once loaded, check `curl -fsS http://127.0.0.1:8080/health`. The host port is bo
 
 - AMD Container Runtime Toolkit CDI is installed on the host. `amd-ctk cdi list` reports `amd.com/gpu=all`, and the `--list-devices` Podman CDI command above detects the Radeon 8060S. The direct-device fallback is `--device /dev/kfd --device /dev/dri/renderD128`; confirm the actual render node with `ls /dev/dri/render*`.
 - Rootless Podman may need membership in the host `render` and `video` groups. `--group-add keep-groups` passes existing supplementary group access to the container. Fedora SELinux may require an additional container option if device access fails; add `--security-opt label=disable` only after observing that problem.
-- The Dockerfile compiles HIP for `gfx1151` and enables llama.cpp Flash Attention kernels. `-fa on` selects them at run time. `GGML_CUDA_ENABLE_UNIFIED_MEMORY=1` enables llama.cpp's UMA fallback and can be overridden with `-e GGML_CUDA_ENABLE_UNIFIED_MEMORY=0` for comparison.
+- The Dockerfile compiles HIP for `gfx1151` and enables llama.cpp Flash Attention kernels. `-fa on` selects them at run time. The current image was built with `GGML_CUDA_ENABLE_UNIFIED_MEMORY=1`; the run commands unset it so HIP allocates directly from the 96 GiB GPU VRAM reservation. A rebuild from this Dockerfile omits it. Setting the variable to `0` still enables managed allocation because this llama.cpp release checks whether the variable exists.
 - `NEXT.md` gives conflicting `HSA_OVERRIDE_GFX_VERSION` values (`11.0.0` and `11.5.1`). This image uses native `gfx1151` support in ROCm 7.14.1 and sets neither override. CDI selects the GPU, so it does not hardcode `HIP_VISIBLE_DEVICES` either.
 - The pasted script suggested `--no-mmap`, but this host has about 30 GiB of ordinary RAM after its 96 GiB GPU reservation. Disabling mmap for a 42.52 GB file may prevent loading or raise RAM pressure. Start with mmap enabled; compare `--no-mmap` only after checking actual memory use.
 
