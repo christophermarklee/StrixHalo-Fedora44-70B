@@ -13,7 +13,13 @@ if [[ -s "$model_path" ]]; then
     exit 0
 fi
 
-curl -fL --retry 5 --retry-all-errors --continue-at - \
-    --output "$partial_path" "$MODEL_URL"
+curl_options=(-fL --retry 5 --retry-all-errors --continue-at -
+    --output "$partial_path")
+if [[ -n "${HUGGINGFACE_API_KEY:-}" ]]; then
+    printf 'Authorization: Bearer %s\n' "$HUGGINGFACE_API_KEY" |
+        curl "${curl_options[@]}" --header @- "$MODEL_URL"
+else
+    curl "${curl_options[@]}" "$MODEL_URL"
+fi
 mv "$partial_path" "$model_path"
 printf 'Downloaded model: %s\n' "$model_path"

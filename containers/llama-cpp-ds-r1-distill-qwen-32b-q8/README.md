@@ -16,10 +16,12 @@ podman volume create ds-r1-distill-qwen-32b-q8-model
 Download the model **inside a container** into that volume. Re-running this command skips a completed file and resumes a `.partial` download. The download container does not need GPU access:
 
 ```sh
-podman run --rm -v ds-r1-distill-qwen-32b-q8-model:/models \
+podman run --rm --env-file .env -v ds-r1-distill-qwen-32b-q8-model:/models \
   --entrypoint /usr/local/bin/download-model \
   llama-cpp-ds-r1-distill-qwen-32b-q8
 ```
+
+The repository root `.env` supplies `HUGGINGFACE_API_KEY` to this download container only. It is ignored by Git and is not copied into the image. For a public download without a token, omit `--env-file .env`.
 
 Confirm that AMD Container Runtime Toolkit CDI exposes the GPU to the image:
 
@@ -57,4 +59,4 @@ Check `curl -fsS http://127.0.0.1:8080/health` after loading. The host port is b
 
 This image compiles HIP for `gfx1151` and enables llama.cpp Flash Attention kernels; `-fa on` selects them at run time. It sets `GGML_CUDA_ENABLE_UNIFIED_MEMORY=1` and no `HSA_OVERRIDE_GFX_VERSION`. Start at 4096 context and inspect memory use before increasing it. The 96 GiB GPU reservation leaves about 30 GiB for ordinary Fedora processes, so begin with mmap enabled rather than `--no-mmap`. Rootless Podman may need a new login session for the host `render` and `video` groups. If SELinux blocks GPU access, test `--security-opt label=disable` only after observing the failure.
 
-The same llama.cpp/ROCm build pattern detected this GPU in the existing DeepSeek 70B image. This model's image and 34.82 GB download have not yet been exercised here; GPU visibility, complete model load, output quality, and speed need verification.
+This image built successfully on this host, and `--list-devices` detected the Radeon 8060S through Podman CDI. The 34.82 GB model download was started in the named Podman volume on October 4, 2026. Complete model load, output quality, and speed still need verification.

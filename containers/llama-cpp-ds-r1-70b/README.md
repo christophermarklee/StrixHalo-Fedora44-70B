@@ -16,10 +16,12 @@ podman volume create ds-r1-70b-q4-k-m-model
 Download the model inside a container into the named volume. Re-running the command skips a completed file and resumes a `.partial` download. The download container does not need GPU access:
 
 ```sh
-podman run --rm -v ds-r1-70b-q4-k-m-model:/models \
+podman run --rm --env-file .env -v ds-r1-70b-q4-k-m-model:/models \
   --entrypoint /usr/local/bin/download-model \
   llama-cpp-ds-r1-70b
 ```
+
+The repository root `.env` supplies `HUGGINGFACE_API_KEY` to this download container only. It is ignored by Git and is not copied into the image. For a public download without a token, omit `--env-file .env`.
 
 Check the CDI device names with `amd-ctk cdi list`. The following commands use `amd.com/gpu=all`, as this host has one GPU. Check GPU visibility before loading the model:
 
