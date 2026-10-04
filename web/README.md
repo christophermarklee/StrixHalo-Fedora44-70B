@@ -4,13 +4,14 @@ This small FastAPI app shows and starts/stops the five inference containers in t
 
 ## Run it
 
-From the repository root:
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/) first. Then, from this directory:
 
 ```sh
-python3 -m venv web/.venv
-web/.venv/bin/pip install -r web/requirements.txt
-web/.venv/bin/uvicorn app:app --app-dir web --host 127.0.0.1 --port 8090
+uv sync
+uv run uvicorn app:app --host 127.0.0.1 --port 8090
 ```
+
+The dependencies are declared in `pyproject.toml`; `uv sync` creates the local environment and lockfile.
 
 Open <http://127.0.0.1:8090>. Keep `--host 127.0.0.1`; the dashboard has no login and can start/stop local containers. Do not bind it to a LAN address. Its read API is at `/api/containers`, and interactive API docs are at `/api/docs`.
 

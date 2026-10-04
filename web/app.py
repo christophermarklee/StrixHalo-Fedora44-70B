@@ -128,11 +128,12 @@ SERVICES: tuple[Service, ...] = (
         volume="qwen3.8-27b-bf16-mtp-model",
         host_port=8085,
         api_kind="qwen_mtp",
+        extra_podman_args=("--network", "pasta:--ipv4-only", "--security-opt", "label=disable"),
         command=(
             "-hf", "unsloth/Qwen3.8-27B-GGUF:BF16",
             "--model-draft", "/models/MTP/mtp-Qwen3.8-27B-Q4_0.gguf",
             "--spec-type", "draft-mtp", "--spec-draft-n-max", "2",
-            "-ngl", "99", "-fa", "on", "--threads", "8", "-c", "8192",
+            "-ngl", "99", "-fa", "on", "--threads", "8", "-c", "262144", "--parallel", "1",
             "--temp", "1.0", "--top-p", "0.95", "--top-k", "20", "--min-p", "0.0",
             "--host", "0.0.0.0", "--port", "8080",
         ),

@@ -36,6 +36,22 @@ python3 tests/run_eval.py \
 
 The harness reads the served model ID from `/v1/models`; pass `--model-id ID` if the server does not implement that endpoint. Reports are written to `tests/reports/` and ignored by Git.
 
+## Compare coding and tool use
+
+Use the agentic suite to compare the configured models on four Python coding tasks, two direct OpenAI function-call tasks, and two MCP-backed tasks:
+
+```sh
+python3 tests/run_all.py --suite tests/suites/agentic.jsonl --port 8081
+```
+
+Choose an unused loopback port if another model server is already running. The runner starts each available model container in sequence and writes per-model JSON plus a Markdown summary under a unique directory in `tests/reports/`. Models with missing images or model data are recorded as skipped.
+
+The coding tasks cover an LRU cache, interval merging, top-k frequency ordering, and duration parsing. Generated Python is executed with tests that are not sent to the model, inside the same no-network, read-only, resource-limited Podman sandbox used by the smoke suite.
+
+The direct tool cases give the model two read-only fixture functions and test a two-step lookup plus a case where it should not call a tool. The MCP cases run a local stdio MCP server through `initialize`, `tools/list`, and `tools/call`; the harness makes its tool schemas available to the model as OpenAI function tools, executes the model's calls through MCP, and returns the results for the final answer. This measures the model plus a small MCP-capable host loop. It does not test Strata's optional built-in `strata_mcp` server configuration or external MCP servers.
+
+These are small project-authored checks, not standardized coding or agent benchmarks. Python performance does not establish ability in other programming languages, repository-scale changes, or safe operation of real tools. Fixture tools are deterministic and have no external side effects.
+
 The built-in `suites/smoke.jsonl` has three project-authored reasoning checks and one Python coding task. Generated code is executed in a disposable Podman container with networking disabled, a read-only root filesystem, no capabilities, and CPU, memory, process, and time limits. The first coding case may pull `python:3.13-slim-bookworm` into Podman image storage. The model must respond with a Python code block for this case.
 
 Combine manually generated reports after running all models:
@@ -50,6 +66,7 @@ The runner accepts any JSONL suite with one object per line. Each object needs `
 
 - `evaluator: "exact"` also needs an `expected` answer. Prompt the model to put its final answer on a line beginning `FINAL:`; the harness compares that answer after trimming whitespace and punctuation.
 - `evaluator: "python_tests"` needs `test_code`, which is appended to the model's first Python code block and run in the Podman sandbox.
+- `evaluator: "tool_call"` and `"mcp_tool"` need `expected` and `expected_tool_calls`; they run a bounded OpenAI-style tool loop and score both tool selection/arguments and the final answer. The MCP evaluator sources its tools from the included stdio fixture server.
 
 This lets you adapt selected AIME or GPQA Diamond questions without including benchmark text or answer keys in the repository. Preserve the dataset's terms and source IDs in your local suite. For LiveCodeBench, use its official test harness to score contest tasks. SWE-bench requires a coding-agent environment; its result measures the agent and tool setup along with the model. Keep those benchmark scores distinct from this small prompt suite.
 

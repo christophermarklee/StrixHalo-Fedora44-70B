@@ -40,7 +40,7 @@ podman run -d --name strata-iq3-s \
   --group-add keep-groups \
   -p 127.0.0.1:8080:8080 \
   -v strata-iq3-s-data:/data \
-  -e FAMILY=qwen -e MODEL=IQ3_S -e CONTEXT=32768 -e LOW_RAM=auto \
+  -e FAMILY=qwen -e MODEL=IQ3_S -e CONTEXT=65536 -e LOW_RAM=auto \
   strata-gfx1151
 ```
 
@@ -73,7 +73,7 @@ podman run -d --name strata-iq3-s \
   --group-add keep-groups \
   -p 127.0.0.1:8080:8080 \
   -v strata-iq3-s-data:/data \
-  -e FAMILY=qwen -e MODEL=IQ3_S -e CONTEXT=32768 -e LOW_RAM=auto \
+  -e FAMILY=qwen -e MODEL=IQ3_S -e CONTEXT=65536 -e LOW_RAM=auto \
   strata-gfx1151
 ```
 
@@ -84,5 +84,6 @@ On this Fedora host, the first model load failed with ROCm's `Memory in use` err
 - The image is built as `localhost/strata-gfx1151:latest`. The downloaded IQ3_S shards, prepared expert file, MTP layer, and install config are in the persistent `strata-iq3-s-data` volume. Starting the existing container does not repeat the downloads.
 - Start it with `podman start strata-iq3-s`, then follow loading with `podman logs -f strata-iq3-s`. Check `curl -fsS http://127.0.0.1:8080/health`; the web app is at <http://127.0.0.1:8080>.
 - The first short request returned `4` with 49.4 output tokens/s and 75.2 prompt tokens/s. These are a smoke test, not a sustained benchmark. Try a normal conversation and a longer prompt, then watch `podman logs --tail 50 strata-iq3-s` for HIP errors.
+- The existing `strata-iq3-s-data` volume is configured for 65,536 context tokens so VS Code Copilot can advertise 61,440 input tokens plus 4,096 output tokens. The model loads at that context size, but full-context speed and stability remain unverified. When recreating the container, set `CONTEXT=65536` as shown above; for an already configured volume, change its saved config or run the entrypoint with `REINSTALL=1` to apply a new context value.
 - Keep `--security-opt label=disable` if recreating the container on this Fedora host. The API is published only on host loopback and has no API key; add a key before exposing it to other devices.
 - Stop it with `podman stop strata-iq3-s`. Keep the named volume so the model remains available.

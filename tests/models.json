@@ -20,7 +20,8 @@
       "mountpoint": "/models",
       "model_file": "Qwen2.5-72B-Instruct-Q4_K_M.gguf",
       "context": 8192,
-      "threads": 8
+      "threads": 8,
+      "selinux_label_disable": true
     },
     {
       "id": "deepseek-r1-distill-qwen-32b-q8-0",
