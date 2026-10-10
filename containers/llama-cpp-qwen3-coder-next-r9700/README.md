@@ -177,5 +177,10 @@ that runner assumes all-GPU llama.cpp offload and different memory/hardware.
   memory budget for this machine.
 - Hardware inference, the full weight download, output quality and performance
   have not been validated on an R9700/64 GB host. The sandbox has no KFD device.
-  Build/download validation status is reported with the task; the configuration
-  remains experimental until the device and application checks above pass.
+  On October 10, 2026, the image built successfully with Docker in an x86-64
+  sandbox, including the `gfx1201` HIP kernels; the compiled server's `--help`
+  and `--list-devices` commands ran (the latter correctly found no GPU).
+  ShellCheck, downloader invalid/mismatched revision rejection, and the existing
+  evaluation registry dry run passed. Hugging Face metadata and full download
+  validation remain blocked by DNS. The configuration remains experimental until
+  the Podman device and application checks above pass on the target host.
