@@ -7,10 +7,12 @@ This image is not a `gfx1151` build.
 
 ## Versions and model updates
 
-- Runtime: [llama.cpp v0.6.0](https://github.com/ggml-org/llama.cpp/releases/tag/v0.6.0),
-  released October 5, 2026, pinned to commit
-  `8345f333951c661d166b00e6f9362e553768f292`.
+- Runtime: [llama.cpp commit `8345f333951c661d166b00e6f9362e553768f292`](https://github.com/ggml-org/llama.cpp/commit/8345f333951c661d166b00e6f9362e553768f292),
+  from October 5, 2026, immediately after v0.6.0. This pins the source
+  commit, not the release tag (which points to a different commit).
 - User space: `docker.io/rocm/dev-ubuntu-24.04:7.2.3-complete`.
+  The Dockerfile also pins its verified manifest digest
+  `sha256:ec1b59bf75ec1122e7a091c0be82301ba12458b038499ef96a5c115876bd78d2`.
   [AMD's Radeon compatibility matrix](https://rocm.docs.amd.com/projects/radeon-ryzen/en/latest/docs/compatibility/compatibilityrad/linux/linux_compatibility.html)
   lists the R9700 as `gfx1201`. The build explicitly targets that architecture.
   The pinned llama.cpp HIP backend accepts CMake HIP architectures, classifies
@@ -19,8 +21,11 @@ This image is not a `gfx1151` build.
 - Model: [Qwen/Qwen3-Coder-Next](https://huggingface.co/Qwen/Qwen3-Coder-Next),
   an 80B-total / 3B-active-parameter coding MoE, using
   [Unsloth's Q4_K_M GGUF](https://huggingface.co/unsloth/Qwen3-Coder-Next-GGUF).
-  Expected download: approximately **48.5 GB (45 GiB)**; reserve at least 55 GB
-  of free disk for the model, plus separate image/build storage.
+  Planning estimate for the download: **45–50 GB (42–47 GiB)**; reserve at least
+  55 GB of free disk for the model, plus separate image/build storage.
+  The exact current size and update date could not be verified because Hugging
+  Face DNS was unavailable in the task sandbox. The downloader checks the exact
+  filename and checksum against live metadata before downloading any weights.
 
 To pick up the recently updated quantization without inventing an unverified
 model commit, the downloader resolves the current Hugging Face commit **once
@@ -28,6 +33,8 @@ per volume**, saves it in `/models/model-revision.txt`, and downloads the single
 `Qwen3-Coder-Next-Q4_K_M.gguf` from that immutable revision. It validates the
 file against the revision's LFS SHA256 and saves its metadata. Repeated downloads
 use the saved revision and resume a `.partial` file, not a moving `main`.
+If a checksum fails, remove the damaged `.partial` file from the volume before
+retrying; an existing completed file with a failed checksum must also be removed.
 For reproducibility across machines, supply `MODEL_REVISION` with the same full
 40-character commit SHA on the first download. To adopt a later model update,
 use a new named volume; the downloader rejects changing an existing volume's pin.
@@ -91,7 +98,7 @@ podman logs -f qwen3-coder-next-r9700
 Check that `--list-devices` detects the R9700 before loading weights. The image
 starts `llama-server` with all non-expert layers eligible for GPU offload,
 **`--cpu-moe`** (expert tensors remain in DDR5), mmap enabled, 4096 context,
-one concurrent slot, eight CPU threads, Flash Attention and the embedded Jinja
+one concurrent slot, eight CPU threads, batch/microbatch sizes 256/128, Flash Attention and the embedded Jinja
 chat template. The entrypoint unsets `GGML_CUDA_ENABLE_UNIFIED_MEMORY`; setting
 it to `0` is not sufficient in llama.cpp releases that test its existence.
 There is no automatic model download on server startup.
@@ -116,6 +123,7 @@ podman run -d --name qwen3-coder-next-r9700 \
   llama-cpp-qwen3-coder-next-r9700 \
   -m /models/Qwen3-Coder-Next-Q4_K_M.gguf --alias qwen3-coder-next \
   -ngl 99 --n-cpu-moe 32 -c 4096 --parallel 1 --threads 8 \
+  --batch-size 256 --ubatch-size 128 \
   -fa on --jinja --temp 1.0 --top-p 0.95 --top-k 40 \
   --host 0.0.0.0 --port 8080
 ```
