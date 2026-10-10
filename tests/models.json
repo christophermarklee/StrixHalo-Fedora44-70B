@@ -1,6 +1,17 @@
 {
   "models": [
     {
+      "id": "openai-gpt-20b",
+      "label": "OpenAI GPT-OSS-20B MXFP4",
+      "kind": "llama_cpp",
+      "image": "localhost/openai-gpt-20b:latest",
+      "volume": "openai-gpt-20b-model",
+      "mountpoint": "/models",
+      "model_file": "gpt-oss-20b-MXFP4.gguf",
+      "context": 8192,
+      "threads": 8
+    },
+    {
       "id": "deepseek-r1-distill-llama-70b-q4-k-m",
       "label": "DeepSeek-R1-Distill-Llama-70B Q4_K_M",
       "kind": "llama_cpp",
