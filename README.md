@@ -10,6 +10,7 @@ Local 70B model inference on a GMKtec EVO-X2 with an AMD Ryzen AI Max+ 395, Rade
 - [`containers/llama-cpp-qwen2.5-72b-q4-k-m/README.md`](containers/llama-cpp-qwen2.5-72b-q4-k-m/README.md): Qwen2.5-72B-Instruct Q4_K_M with llama.cpp HIP.
 - [`containers/llama-cpp-ds-r1-distill-qwen-32b-q8/README.md`](containers/llama-cpp-ds-r1-distill-qwen-32b-q8/README.md): DeepSeek-R1-Distill-Qwen-32B Q8_0 with llama.cpp HIP.
 - [`containers/llama-cpp-qwen3.8-27b-bf16-mtp/README.md`](containers/llama-cpp-qwen3.8-27b-bf16-mtp/README.md): Unsloth Qwen3.8-27B BF16 with MTP speculative decoding.
+- [`containers/llama-cpp-qwen3-coder-next-r9700/README.md`](containers/llama-cpp-qwen3-coder-next-r9700/README.md): experimental Qwen3-Coder-Next Q4_K_M on a separate Radeon AI PRO R9700 (`gfx1201`, 32 GB VRAM) / 64 GB DDR5 host, with CPU expert offload.
 - [`containers/strata-qwen-flash-next-iq3-s/README.md`](containers/strata-qwen-flash-next-iq3-s/README.md): Strata's experimental `gfx1151` build and Qwen IQ3_S instructions.
 - [`web/README.md`](web/README.md): local FastAPI dashboard for the inference containers.
 - [`NEXT.md`](NEXT.md): source notes and remaining model work.
